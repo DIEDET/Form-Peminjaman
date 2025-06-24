@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Peminjaman Aset</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1e3c72;
+            --secondary: #2a5298;
+            --success: #28a745;
+            --info: #17a2b8;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding-top: 70px; /* Adjusted for fixed navbar */
+            color: #333;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+        }
+
+        .section {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: none;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card .card-body { padding: 20px; }
+        .stat-icon { font-size: 2.5rem; margin-bottom: 15px; }
+        .stat-number { font-size: 2rem; font-weight: 700; margin-bottom: 5px; }
+        .stat-label { font-size: 1rem; color: #6c757d; }
+
+        .table-responsive {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+        .table th { padding: 12px 15px; font-weight: 600; }
+        .table td { padding: 10px 15px; vertical-align: middle; }
+
+        .badge-status { padding: 6px 12px; border-radius: 20px; font-weight: 600; }
+        .badge-dipinjam { background-color: #fff3cd; color: #856404; }
+        .badge-dikembalikan { background-color: #d4edda; color: #155724; }
+
+        .action-buttons .btn { margin-right: 5px; }
+
+        .toast-container { z-index: 1080; }
+
+        .modal-content { border-radius: 10px; overflow: hidden; }
+
+        #ethicsModal .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-bottom: none;
+        }
+        .ethics-list { list-style: none; padding-left: 0; }
+        .ethics-list li { margin-bottom: 15px; padding-left: 30px; position: relative; }
+        .ethics-list li::before {
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            content: "\f058"; /* check-circle icon */
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .form-container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: opacity 0.3s ease;
+        }
+        
+        .loading {
+            display: inline-block; width: 20px; height: 20px;
+            border: 3px solid #f3f3f3; border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .table-loading-row td {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-clipboard-list me-2"></i>Sistem Peminjaman Aset</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="#" data-section="dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-section="pinjam"><i class="fas fa-plus-circle me-1"></i> Pinjam Aset</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-section="transaksi"><i class="fas fa-list me-1"></i> Transaksi</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-section="riwayat"><i class="fas fa-history me-1"></i> Riwayat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" data-section="trash"><i class="fas fa-trash-alt me-1"></i> Trash Bin</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <section id="dashboard" class="section active">
+            <h2 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Dashboard Statistik</h2>
+            <div class="row">
+                <div class="col-md-3"><div class="stat-card"><div class="card-body text-center"><div class="stat-icon text-primary"><i class="fas fa-box"></i></div><div class="stat-number" id="totalAssets"><div class="loading"></div></div><div class="stat-label">Total Aset</div></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="card-body text-center"><div class="stat-icon text-success"><i class="fas fa-check-circle"></i></div><div class="stat-number" id="availableAssets"><div class="loading"></div></div><div class="stat-label">Aset Tersedia</div></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="card-body text-center"><div class="stat-icon text-warning"><i class="fas fa-sync-alt"></i></div><div class="stat-number" id="borrowedAssets"><div class="loading"></div></div><div class="stat-label">Aset Dipinjam</div></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="card-body text-center"><div class="stat-icon text-info"><i class="fas fa-file-alt"></i></div><div class="stat-number" id="activeTransactions"><div class="loading"></div></div><div class="stat-label">Transaksi Aktif</div></div></div></div>
+            </div>
+        </section>
+
+        <section id="pinjam" class="section">
+            <h2 class="mb-4"><i class="fas fa-plus-circle me-2"></i>Pinjam Aset</h2>
+            <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>Sebelum meminjam aset, Anda harus membaca dan menyetujui etika peminjaman.</div>
+            <div class="text-center my-4"><button class="btn btn-primary btn-lg" id="showEthicsBtn"><i class="fas fa-file-signature me-2"></i>Baca & Setujui Etika Peminjaman</button></div>
+            <div class="form-container" id="loanFormContainer" style="opacity: 0.5; pointer-events: none;">
+                <h4 class="mb-4"><i class="fas fa-pen me-2"></i>Form Peminjaman Aset</h4>
+                <form id="loanForm">
+                    <div class="row"><div class="col-md-6 mb-3"><label for="namaLengkap" class="form-label">Nama Lengkap</label><input type="text" class="form-control" id="namaLengkap" required></div><div class="col-md-6 mb-3"><label for="nim" class="form-label">NIM</label><input type="text" class="form-control" id="nim" maxlength="9" required><div class="form-text">9 digit angka</div></div></div>
+                    <div class="row"><div class="col-md-6 mb-3"><label for="noHp" class="form-label">Nomor HP</label><input type="tel" class="form-control" id="noHp" maxlength="12" required><div class="form-text">12 digit angka</div></div><div class="col-md-6 mb-3"><label for="kelas" class="form-label">Kelas</label><input type="text" class="form-control" id="kelas" required></div></div>
+                    <div class="row"><div class="col-md-6 mb-3"><label for="mataPelajaran" class="form-label">Mata Pelajaran</label><select class="form-select" id="mataPelajaran" required><option value="">Pilih mata pelajaran...</option></select></div><div class="col-md-6 mb-3"><label for="aset" class="form-label">Pilih Aset</label><select class="form-select" id="aset" required><option value="">Pilih aset...</option></select></div></div>
+                    <div class="row"><div class="col-md-4 mb-3"><label for="tanggalPinjam" class="form-label">Tanggal Pinjam</label><input type="date" class="form-control" id="tanggalPinjam" required></div><div class="col-md-4 mb-3"><label for="jamPinjam" class="form-label">Jam Pinjam</label><input type="time" class="form-control" id="jamPinjam" required></div><div class="col-md-4 mb-3"><label for="tanggalKembali" class="form-label">Tanggal Kembali</label><input type="date" class="form-control" id="tanggalKembali" required></div></div>
+                    <div class="text-end"><button type="reset" class="btn btn-secondary me-2"><i class="fas fa-undo me-1"></i> Reset</button><button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i> Submit Peminjaman</button></div>
+                </form>
+            </div>
+        </section>
+
+        <section id="transaksi" class="section">
+            <div class="d-flex justify-content-between align-items-center mb-4"><h2><i class="fas fa-list me-2"></i>Transaksi Peminjaman</h2></div>
+            <div class="table-responsive"><table class="table table-hover"><thead><tr><th>No</th><th>Nama Lengkap</th><th>NIM</th><th>Barang</th><th>Nomor Barang</th><th>Kelas</th><th>Mata Pelajaran</th><th>Tanggal Pinjam</th><th>Tanggal Kembali</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="transactionsTableBody"></tbody></table></div>
+        </section>
+
+        <section id="riwayat" class="section">
+            <h2 class="mb-4"><i class="fas fa-history me-2"></i>Riwayat Peminjaman</h2>
+            <div class="card mb-4"><div class="card-body"><div class="row"><div class="col-md-3 mb-3"><label for="filterNama" class="form-label">Nama Lengkap</label><input type="text" class="form-control" id="filterNama" placeholder="Cari nama..."></div><div class="col-md-3 mb-3"><label for="filterKelas" class="form-label">Kelas</label><select class="form-select" id="filterKelas"><option value="">Semua Kelas</option><option>TI-1A</option><option>TI-1B</option><option>TI-2A</option><option>TI-2B</option><option>TI-3A</option><option>TI-3B</option><option>TI-4A</option><option>TI-4B</option></select></div><div class="col-md-3 mb-3"><label for="filterTanggalMulai" class="form-label">Tanggal Mulai</label><input type="date" class="form-control" id="filterTanggalMulai"></div><div class="col-md-3 mb-3"><label for="filterTanggalAkhir" class="form-label">Tanggal Akhir</label><input type="date" class="form-control" id="filterTanggalAkhir"></div></div><div class="text-end"><button class="btn btn-secondary me-2" id="resetFilter"><i class="fas fa-undo me-1"></i> Reset Filter</button><button class="btn btn-primary" id="applyFilter"><i class="fas fa-filter me-1"></i> Terapkan Filter</button></div></div></div>
+            <div class="table-responsive"><table class="table table-hover"><thead><tr><th>No</th><th>Tanggal Pinjam</th><th>Nama</th><th>Kelas</th><th>Mata Pelajaran</th><th>Barang</th><th>No. Barang</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="historyTableBody"></tbody></table></div>
+        </section>
+
+        <section id="trash" class="section">
+            <div class="d-flex justify-content-between align-items-center mb-4"><h2><i class="fas fa-trash-alt me-2"></i>Trash Bin</h2><div><button class="btn btn-danger" id="emptyTrash"><i class="fas fa-trash me-1"></i> Kosongkan Trash</button></div></div>
+            <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Data di trash bin akan dihapus permanen.</div>
+            <div class="table-responsive"><table class="table table-hover"><thead><tr><th><input type="checkbox" id="selectAllTrash"></th><th>Nama</th><th>NIM</th><th>Kelas</th><th>Barang</th><th>No. Barang</th><th>Tgl Pinjam</th><th>Dihapus Pada</th><th>Aksi</th></tr></thead><tbody id="trashTableBody"></tbody></table></div>
+            <div id="bulkActions" class="mt-3" style="display: none;"><button class="btn btn-success me-2" id="restoreSelected"><i class="fas fa-undo me-1"></i> Restore Terpilih</button><button class="btn btn-danger" id="deleteSelected"><i class="fas fa-times me-1"></i> Hapus Permanen Terpilih</button></div>
+        </section>
+    </div>
+
+    <div class="modal fade" id="ethicsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content"><div class="modal-header"><h5 class="modal-title">⚖️ Etika Peminjaman Aset</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <p>Sebelum melakukan peminjaman, harap membaca dan menyetujui ketentuan berikut:</p>
+                    <ul class="ethics-list">
+                        <li><strong>Larangan Transfer:</strong><br>Barang yang dipinjam tidak boleh dipinjamkan kepada pihak ketiga tanpa seizin petugas.</li>
+                        <li><strong>Tanggung Jawab:</strong><br>Peminjam bertanggung jawab penuh atas keamanan dan kondisi aset selama masa peminjaman.</li>
+                        <li><strong>Ketepatan Waktu:</strong><br>Aset harus dikembalikan tepat waktu sesuai dengan yang telah disepakati.</li>
+                        <li><strong>Kondisi Aset:</strong><br>Peminjam wajib memeriksa kondisi aset sebelum meminjam dan melaporkan kerusakan.</li>
+                        <li><strong>Sanksi:</strong><br>Pelanggaran terhadap etika peminjaman akan dikenakan sanksi sesuai peraturan.</li>
+                    </ul>
+                    <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="agreeEthicsCheck"><label class="form-check-label" for="agreeEthicsCheck">Saya telah membaca dan menyetujui semua ketentuan di atas.</label></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" id="acceptEthicsBtn" disabled>Setuju & Lanjutkan</button></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="returnModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Konfirmasi Pengembalian</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin mengembalikan aset berikut?</p>
+                    <div class="card"><div class="card-body"><h6 id="returnAssetName"></h6><p class="mb-0">Nomor Aset: <span id="returnAssetNumber"></span></p><p>Dipinjam oleh: <span id="returnBorrower"></span></p></div></div>
+                    <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="returnCondition"><label class="form-check-label" for="returnCondition">Saya menegaskan bahwa aset dalam kondisi baik dan lengkap</label></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" id="confirmReturn" disabled>Konfirmasi Pengembalian</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header"><strong class="me-auto" id="toastTitle">Notifikasi</strong><small>Baru saja</small><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        // Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove, push, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQv2n6_v1WPQDBpicnBklj0GIBZteXD70",
+            authDomain: "talms-id.firebaseapp.com",
+            databaseURL: "https://talms-id-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "talms-id",
+            storageBucket: "talms-id.appspot.com",
+            messagingSenderId: "43947718844",
+            appId: "1:43947718844:web:4cf8278623a4df42a438b9",
+            measurementId: "G-7BD2V5G9M7"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Initial Data
+        const initialAssets = [
+            { id: 'proyektor-01', namaBarang: 'Proyektor EPSON', nomorBarang: '01', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-02', namaBarang: 'Proyektor EPSON', nomorBarang: '02', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-03', namaBarang: 'Proyektor EPSON', nomorBarang: '03', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-04', namaBarang: 'Proyektor EPSON', nomorBarang: '04', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-05', namaBarang: 'Proyektor EPSON', nomorBarang: '05', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-06', namaBarang: 'Proyektor EPSON', nomorBarang: '06', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-07', namaBarang: 'Proyektor EPSON', nomorBarang: '07', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-08', namaBarang: 'Proyektor EPSON', nomorBarang: '08', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-09', namaBarang: 'Proyektor EPSON', nomorBarang: '09', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-10', namaBarang: 'Proyektor EPSON', nomorBarang: '10', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-11', namaBarang: 'Proyektor EPSON', nomorBarang: '11', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-12', namaBarang: 'Proyektor EPSON', nomorBarang: '12', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-13', namaBarang: 'Proyektor EPSON', nomorBarang: '13', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-14', namaBarang: 'Proyektor EPSON', nomorBarang: '14', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-15', namaBarang: 'Proyektor EPSON', nomorBarang: '15', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-16', namaBarang: 'Proyektor EPSON', nomorBarang: '16', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-17', namaBarang: 'Proyektor EPSON', nomorBarang: '17', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-18', namaBarang: 'Proyektor EPSON', nomorBarang: '18', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-19', namaBarang: 'Proyektor EPSON', nomorBarang: '19', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-20', namaBarang: 'Proyektor EPSON', nomorBarang: '20', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-21', namaBarang: 'Proyektor EPSON', nomorBarang: '21', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-22', namaBarang: 'Proyektor EPSON', nomorBarang: '22', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-23', namaBarang: 'Proyektor EPSON', nomorBarang: '23', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'proyektor-24', namaBarang: 'Proyektor EPSON', nomorBarang: '24', status: 'Tersedia', kategori: 'Proyektor' },
+            { id: 'converter-01', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '01', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-02', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '02', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-03', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '03', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-04', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '04', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-05', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '05', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-06', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '06', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-07', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '07', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-08', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '08', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-09', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '09', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-10', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '10', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-11', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '11', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-12', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '12', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-13', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '13', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-14', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '14', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-15', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '15', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-16', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '16', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-17', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '17', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-18', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '18', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-19', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '19', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-20', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '20', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-21', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '21', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-22', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '22', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-23', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '23', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'converter-24', namaBarang: 'Converter ROBOT RHV01', nomorBarang: '24', status: 'Tersedia', kategori: 'Converter' },
+            { id: 'atk-01', namaBarang: 'ATK', nomorBarang: '01', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-02', namaBarang: 'ATK', nomorBarang: '02', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-03', namaBarang: 'ATK', nomorBarang: '03', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-04', namaBarang: 'ATK', nomorBarang: '04', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-05', namaBarang: 'ATK', nomorBarang: '05', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-06', namaBarang: 'ATK', nomorBarang: '06', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-07', namaBarang: 'ATK', nomorBarang: '07', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-08', namaBarang: 'ATK', nomorBarang: '08', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-09', namaBarang: 'ATK', nomorBarang: '09', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-10', namaBarang: 'ATK', nomorBarang: '10', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-11', namaBarang: 'ATK', nomorBarang: '11', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-12', namaBarang: 'ATK', nomorBarang: '12', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-13', namaBarang: 'ATK', nomorBarang: '13', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-14', namaBarang: 'ATK', nomorBarang: '14', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-15', namaBarang: 'ATK', nomorBarang: '15', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-16', namaBarang: 'ATK', nomorBarang: '16', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-17', namaBarang: 'ATK', nomorBarang: '17', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-18', namaBarang: 'ATK', nomorBarang: '18', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-19', namaBarang: 'ATK', nomorBarang: '19', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-20', namaBarang: 'ATK', nomorBarang: '20', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-21', namaBarang: 'ATK', nomorBarang: '21', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-22', namaBarang: 'ATK', nomorBarang: '22', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-23', namaBarang: 'ATK', nomorBarang: '23', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'atk-24', namaBarang: 'ATK', nomorBarang: '24', status: 'Tersedia', kategori: 'ATK' },
+            { id: 'komputer-01', namaBarang: 'Komputer HP', nomorBarang: '01', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-02', namaBarang: 'Komputer HP', nomorBarang: '02', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-03', namaBarang: 'Komputer HP', nomorBarang: '03', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-04', namaBarang: 'Komputer HP', nomorBarang: '04', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-05', namaBarang: 'Komputer HP', nomorBarang: '05', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-06', namaBarang: 'Komputer HP', nomorBarang: '06', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-07', namaBarang: 'Komputer HP', nomorBarang: '07', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-08', namaBarang: 'Komputer HP', nomorBarang: '08', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-09', namaBarang: 'Komputer HP', nomorBarang: '09', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-10', namaBarang: 'Komputer HP', nomorBarang: '10', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-11', namaBarang: 'Komputer HP', nomorBarang: '11', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-12', namaBarang: 'Komputer HP', nomorBarang: '12', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-13', namaBarang: 'Komputer HP', nomorBarang: '13', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-14', namaBarang: 'Komputer HP', nomorBarang: '14', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-15', namaBarang: 'Komputer HP', nomorBarang: '15', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-16', namaBarang: 'Komputer HP', nomorBarang: '16', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-17', namaBarang: 'Komputer HP', nomorBarang: '17', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-18', namaBarang: 'Komputer HP', nomorBarang: '18', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-19', namaBarang: 'Komputer HP', nomorBarang: '19', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-20', namaBarang: 'Komputer HP', nomorBarang: '20', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-21', namaBarang: 'Komputer HP', nomorBarang: '21', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-22', namaBarang: 'Komputer HP', nomorBarang: '22', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-23', namaBarang: 'Komputer HP', nomorBarang: '23', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-24', namaBarang: 'Komputer HP', nomorBarang: '24', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-25', namaBarang: 'Komputer HP', nomorBarang: '25', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-26', namaBarang: 'Komputer HP', nomorBarang: '26', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-27', namaBarang: 'Komputer HP', nomorBarang: '27', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-28', namaBarang: 'Komputer HP', nomorBarang: '28', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-29', namaBarang: 'Komputer HP', nomorBarang: '29', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'komputer-30', namaBarang: 'Komputer HP', nomorBarang: '30', status: 'Tersedia', kategori: 'Komputer' },
+            { id: 'stopkontak-01', namaBarang: 'Stop Kontak', nomorBarang: '01', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-02', namaBarang: 'Stop Kontak', nomorBarang: '02', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-03', namaBarang: 'Stop Kontak', nomorBarang: '03', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-04', namaBarang: 'Stop Kontak', nomorBarang: '04', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-05', namaBarang: 'Stop Kontak', nomorBarang: '05', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-06', namaBarang: 'Stop Kontak', nomorBarang: '06', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-07', namaBarang: 'Stop Kontak', nomorBarang: '07', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-08', namaBarang: 'Stop Kontak', nomorBarang: '08', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-09', namaBarang: 'Stop Kontak', nomorBarang: '09', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-10', namaBarang: 'Stop Kontak', nomorBarang: '10', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-11', namaBarang: 'Stop Kontak', nomorBarang: '11', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-12', namaBarang: 'Stop Kontak', nomorBarang: '12', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-13', namaBarang: 'Stop Kontak', nomorBarang: '13', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-14', namaBarang: 'Stop Kontak', nomorBarang: '14', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-15', namaBarang: 'Stop Kontak', nomorBarang: '15', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-16', namaBarang: 'Stop Kontak', nomorBarang: '16', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-17', namaBarang: 'Stop Kontak', nomorBarang: '17', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-18', namaBarang: 'Stop Kontak', nomorBarang: '18', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-19', namaBarang: 'Stop Kontak', nomorBarang: '19', status: 'Tersedia', kategori: 'Stop Kontak' },
+            { id: 'stopkontak-20', namaBarang: 'Stop Kontak', nomorBarang: '20', status: 'Tersedia', kategori: 'Stop Kontak' }
+        ];
+
+        const mataKuliah = [
+            'Pancasila',
+            'Agama',
+            'Metode Numerik',
+            'Rekayasa Perangkat Lunak',
+            'Mobile Computing',
+            'Pemodelan Simulasi',
+            'Rangkaian Listrik & Elektronika',
+            'Pemrograman Dasar',
+            'Desain Sistem Digital',
+            'Robotika',
+            'Software Design for Embedded System',
+            'Desain dan Teknologi Multimedia',
+            'Aljabar Linear Elementer',
+            'Aplikasi Perkantoran',
+            'Pemrograman Web Interaktif',
+            'Jaringan Multimedia',
+            'Interaksi Manusia Komputer',
+            'Kecerdasan Buatan',
+            'Manajemen Proyek',
+            'Sistem Operasi',
+            'Matematika I',
+            'Workshop Keterampilan Komputer',
+            'Rangkaian Digital 2',
+            'Pemrograman Berorientasi Obyek',
+            'Basis Data',
+            'Kewarganegaraan',
+            'Administrasi Basis Data',
+            'Jaringan Komputer',
+            'Signal Processing',
+            'Sistem Komputer',
+            'Teknologi Audio Visual',
+            'Pemrograman Berorientasi Objek',
+            'Internet of Things',
+            'Statistik Probabilistik',
+            'Etika Profesi TI',
+            'Matematika Diskrit',
+            'Bahasa Inggris I',
+            'Mikrokontroller & Interfacing',
+            'Vektor dan Matriks',
+            'Pengolahan Citra Digital',
+            'Administrator Jaringan',
+            'Bahasa Inggris (Persiapan TOEFL)',
+            'Konsep Teknologi Rekayasa Komputer',
+            'Desain Sistem',
+            'Computer Vision',
+            'Matematika I (Diskrit dan Logika)',
+            'Bahasa Indonesia',
+            'Grafika dan Citra Komputer',
+            'Proyek Multimedia',
+            'Pengujian Aplikasi Multimedia',
+            'Augmented Reality',
+            'Organisasi dan Arsitektur Komputer',
+            'Mikroprocessor',
+            'Kendali dan Robotika',
+            'Telekomunikasi',
+            'Kesehatan dan Keselamatan Kerja',
+            'Character Building',
+            'Riset Awal',
+            'Sistem Cerdas',
+            'Pemrograman Tingkat Lanjut',
+            'Pemrograman Simulator',
+            'Teknologi Blockchain',
+            'Kewirausahan Berbasis Teknologi',
+            'Bahasa Inggris III (TOEFL Preparation)',
+            'Pemrograman Tingkat Lanjut III'
+        ];
+
+        // Make Firebase functions available globally
+        window.firebase = {
+            db: database,
+            ref: (path) => ref(database, path),
+            get: (ref) => get(ref),
+            onValue, set, remove, push, child
+        };
+
+        // Initialize data if not exists
+        async function initializeData() {
+            const assetsRef = firebase.ref('aset');
+            const mataKuliahRef = firebase.ref('mataKuliah');
+            
+            try {
+                const assetsSnapshot = await firebase.get(assetsRef);
+                const mataKuliahSnapshot = await firebase.get(mataKuliahRef);
+                
+                if (!assetsSnapshot.exists()) {
+                    // Initialize assets
+                    for (const asset of initialAssets) {
+                        await firebase.set(firebase.ref(`aset/${asset.id}`), asset);
+                    }
+                    console.log('Assets initialized successfully');
+                }
+                
+                if (!mataKuliahSnapshot.exists()) {
+                    // Initialize mata kuliah
+                    await firebase.set(mataKuliahRef, mataKuliah);
+                    console.log('Mata kuliah initialized successfully');
+                }
+            } catch (error) {
+                console.error('Error initializing data:', error);
+            }
+        }
+
+        // Initialize data and dispatch ready event
+        initializeData().then(() => {
+            document.dispatchEvent(new Event('firebaseReady'));
+        });
+    </script>
+
+    <script>
+        document.addEventListener('firebaseReady', () => {
+        // Global variables
+        let allData = { assets: {}, loans: {}, history: {}, trash: {} };
+        let currentTransactionId = null;
+        let currentAssetId = null;
+
+        // DOM Elements
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.section');
+        const ethicsModalEl = document.getElementById('ethicsModal');
+        const ethicsModal = new bootstrap.Modal(ethicsModalEl);
+        const returnModalEl = document.getElementById('returnModal');
+        const returnModal = new bootstrap.Modal(returnModalEl);
+        const loanFormContainer = document.getElementById('loanFormContainer');
+        const loanForm = document.getElementById('loanForm');
+
+        // Table Bodies
+        const transactionsTableBody = document.getElementById('transactionsTableBody');
+        const historyTableBody = document.getElementById('historyTableBody');
+        const trashTableBody = document.getElementById('trashTableBody');
+
+        const loadingRow = (colspan) => `<tr class="table-loading-row"><td colspan="${colspan}"><div class="loading"></div> &nbsp; Memuat data...</td></tr>`;
+
+        // --- Utility Functions ---
+        function showToast(title, message, type = 'info') {
+            const toastEl = document.getElementById('liveToast');
+            const toastTitleEl = document.getElementById('toastTitle');
+            const toastMessageEl = document.getElementById('toastMessage');
+            const toastHeader = toastEl.querySelector('.toast-header');
+
+            toastTitleEl.textContent = title;
+            toastMessageEl.textContent = message;
+            toastHeader.className = 'toast-header'; // Reset classes
+            
+            const typeClasses = {
+                success: 'bg-success text-white',
+                error: 'bg-danger text-white',
+                warning: 'bg-warning text-dark'
+            };
+            if(typeClasses[type]) toastHeader.classList.add(...typeClasses[type].split(' '));
+
+            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toast.show();
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            return new Date(dateString).toLocaleString('id-ID');
+        }
+
+        // --- Navigation ---
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = link.getAttribute('data-section');
+
+                navLinks.forEach(l => l.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+
+                link.classList.add('active');
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // --- Data Loading & Rendering ---
+        function loadDashboardStats() {
+            const assetsRef = firebase.ref('aset');
+            firebase.onValue(assetsRef, (snapshot) => {
+                const assets = snapshot.val() || {};
+                allData.assets = assets;
+                document.getElementById('totalAssets').textContent = Object.keys(assets).length;
+                document.getElementById('availableAssets').textContent = Object.values(assets).filter(a => a.status === 'Tersedia').length;
+                document.getElementById('borrowedAssets').textContent = Object.values(assets).filter(a => a.status === 'Dipinjam').length;
+                loadAssetsForDropdown();
+            });
+
+            const loansRef = firebase.ref('peminjaman');
+            firebase.onValue(loansRef, (snapshot) => {
+                const loans = snapshot.val() || {};
+                allData.loans = loans;
+                document.getElementById('activeTransactions').textContent = Object.values(loans).filter(l => l.status === 'Dipinjam').length;
+                loadTransactions();
+                loadHistory();
+            });
+
+            const trashRef = firebase.ref('deleted/peminjaman');
+            firebase.onValue(trashRef, (snapshot) => {
+                allData.trash = snapshot.val() || {};
+                loadTrash();
+            });
+
+            // Load mata kuliah for dropdown
+            const mataKuliahRef = firebase.ref('mataKuliah');
+            firebase.onValue(mataKuliahRef, (snapshot) => {
+                const mataKuliah = snapshot.val() || [];
+                const mataKuliahSelect = document.getElementById('mataPelajaran');
+                const currentVal = mataKuliahSelect.value;
+                mataKuliahSelect.innerHTML = '<option value="">Pilih mata pelajaran...</option>';
+                mataKuliah.forEach(mk => {
+                    const option = document.createElement('option');
+                    option.value = mk;
+                    option.textContent = mk;
+                    mataKuliahSelect.appendChild(option);
+                });
+                mataKuliahSelect.value = currentVal;
+            });
+        }
+        
+        function loadAssetsForDropdown() {
+            const asetSelect = document.getElementById('aset');
+            const currentVal = asetSelect.value;
+            asetSelect.innerHTML = '<option value="">Pilih aset...</option>';
+            Object.values(allData.assets).forEach(asset => {
+                if (asset.status === 'Tersedia') {
+                    const option = document.createElement('option');
+                    option.value = asset.id;
+                    option.textContent = `${asset.namaBarang} (No. ${asset.nomorBarang})`;
+                    asetSelect.appendChild(option);
+                }
+            });
+            asetSelect.value = currentVal;
+        }
+
+        function loadTransactions() {
+            transactionsTableBody.innerHTML = loadingRow(11);
+            const activeLoans = Object.values(allData.loans).filter(loan => loan.status === 'Dipinjam').sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            if (activeLoans.length === 0) {
+                transactionsTableBody.innerHTML = `<tr><td colspan="11" class="text-center py-4">Tidak ada transaksi aktif.</td></tr>`;
+                return;
+            }
+
+            transactionsTableBody.innerHTML = '';
+            activeLoans.forEach((loan, index) => {
+                const asset = allData.assets[loan.asetRef] || { namaBarang: 'N/A', nomorBarang: 'N/A' };
+                const row = transactionsTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td><td>${loan.namaLengkap}</td><td>${loan.nim}</td>
+                    <td>${asset.namaBarang}</td><td>${asset.nomorBarang}</td><td>${loan.kelas}</td>
+                    <td>${loan.mataPelajaran}</td><td>${formatDate(loan.tanggalPinjam)}</td>
+                    <td>${formatDate(loan.tanggalKembali)}</td>
+                    <td><span class="badge-status badge-dipinjam">${loan.status}</span></td>
+                    <td class="action-buttons">
+                        <button class="btn btn-sm btn-success btn-return" data-loan-id="${loan.id}" data-asset-id="${loan.asetRef}" data-asset-name="${asset.namaBarang}" data-asset-number="${asset.nomorBarang}" data-borrower="${loan.namaLengkap}"><i class="fas fa-undo me-1"></i> Kembalikan</button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-loan-id="${loan.id}" data-asset-id="${loan.asetRef}"><i class="fas fa-trash me-1"></i> Hapus</button>
+                    </td>`;
+            });
+        }
+
+        function loadHistory() {
+            historyTableBody.innerHTML = loadingRow(9);
+            const namaFilter = document.getElementById('filterNama').value.toLowerCase();
+            const kelasFilter = document.getElementById('filterKelas').value;
+            const tanggalMulai = document.getElementById('filterTanggalMulai').value;
+            const tanggalAkhir = document.getElementById('filterTanggalAkhir').value;
+
+            const returnedLoans = Object.values(allData.loans)
+                .filter(item => {
+                    if (item.status !== 'Dikembalikan') return false;
+                    if (namaFilter && !item.namaLengkap.toLowerCase().includes(namaFilter)) return false;
+                    if (kelasFilter && item.kelas !== kelasFilter) return false;
+                    if (tanggalMulai && new Date(item.tanggalPinjam) < new Date(tanggalMulai)) return false;
+                    if (tanggalAkhir && new Date(item.tanggalPinjam) > new Date(tanggalAkhir)) return false;
+                    return true;
+                })
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            if (returnedLoans.length === 0) {
+                historyTableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4">Tidak ada riwayat yang cocok dengan filter.</td></tr>`;
+                return;
+            }
+
+            historyTableBody.innerHTML = '';
+            returnedLoans.forEach((item, index) => {
+                const asset = allData.assets[item.asetRef] || { namaBarang: 'N/A', nomorBarang: 'N/A' };
+                const row = historyTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td><td>${formatDate(item.tanggalPinjam)}</td><td>${item.namaLengkap}</td>
+                    <td>${item.kelas}</td><td>${item.mataPelajaran}</td><td>${asset.namaBarang}</td><td>${asset.nomorBarang}</td>
+                    <td><span class="badge-status badge-dikembalikan">${item.status}</span></td>
+                    <td><button class="btn btn-sm btn-danger btn-delete" data-loan-id="${item.id}" data-asset-id="${item.asetRef}"><i class="fas fa-trash me-1"></i> Hapus</button></td>`;
+            });
+        }
+
+        function loadTrash() {
+            trashTableBody.innerHTML = loadingRow(9);
+            const trashedItems = Object.values(allData.trash).sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+
+            if (trashedItems.length === 0) {
+                trashTableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4">Trash bin kosong.</td></tr>`;
+                return;
+            }
+
+            trashTableBody.innerHTML = '';
+            trashedItems.forEach(item => {
+                const asset = allData.assets[item.asetRef] || { namaBarang: 'N/A', nomorBarang: 'N/A' };
+                const row = trashTableBody.insertRow();
+                row.innerHTML = `
+                    <td><input type="checkbox" class="trash-item" value="${item.id}" data-asset-id="${item.asetRef}"></td>
+                    <td>${item.namaLengkap}</td><td>${item.nim}</td><td>${item.kelas}</td>
+                    <td>${asset.namaBarang}</td><td>${asset.nomorBarang}</td><td>${formatDate(item.tanggalPinjam)}</td>
+                    <td>${formatDateTime(item.deletedAt)}</td>
+                    <td class="action-buttons">
+                        <button class="btn btn-sm btn-success btn-restore" data-loan-id="${item.id}"><i class="fas fa-undo"></i> Restore</button>
+                        <button class="btn btn-sm btn-danger btn-delete-perm" data-loan-id="${item.id}"><i class="fas fa-times"></i> Hapus Permanen</button>
+                    </td>`;
+            });
+        }
+
+        // --- Event Handlers & Actions ---
+
+        // Ethics Modal
+        document.getElementById('showEthicsBtn').addEventListener('click', () => ethicsModal.show());
+        document.getElementById('agreeEthicsCheck').addEventListener('change', function() {
+            document.getElementById('acceptEthicsBtn').disabled = !this.checked;
+        });
+        document.getElementById('acceptEthicsBtn').addEventListener('click', function() {
+            loanFormContainer.style.opacity = '1';
+            loanFormContainer.style.pointerEvents = 'auto';
+            ethicsModal.hide();
+            showToast('Informasi', 'Anda sekarang dapat mengisi form peminjaman.', 'info');
+        });
+
+        // Loan Form Submission
+        loanForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newLoanRef = firebase.push(firebase.ref('peminjaman'));
+            const loanData = {
+                id: newLoanRef.key,
+                namaLengkap: document.getElementById('namaLengkap').value,
+                nim: document.getElementById('nim').value,
+                noHp: document.getElementById('noHp').value,
+                kelas: document.getElementById('kelas').value,
+                mataPelajaran: document.getElementById('mataPelajaran').value,
+                asetRef: document.getElementById('aset').value,
+                tanggalPinjam: document.getElementById('tanggalPinjam').value,
+                jamPinjam: document.getElementById('jamPinjam').value,
+                tanggalKembali: document.getElementById('tanggalKembali').value,
+                status: 'Dipinjam',
+                createdAt: new Date().toISOString()
+            };
+            
+            firebase.set(newLoanRef, loanData)
+                .then(() => {
+                    firebase.set(firebase.ref(`aset/${loanData.asetRef}/status`), 'Dipinjam');
+                    loanForm.reset();
+                    showToast('Sukses', 'Peminjaman berhasil dicatat.', 'success');
+                })
+                .catch(error => showToast('Error', `Gagal menyimpan: ${error.message}`, 'error'));
+        });
+        
+        // Dynamic Event Listeners for table buttons
+        document.body.addEventListener('click', function(e) {
+            const target = e.target.closest('button');
+            if (!target) return;
+
+            // Return button
+            if (target.classList.contains('btn-return')) {
+                document.getElementById('returnAssetName').textContent = target.dataset.assetName;
+                document.getElementById('returnAssetNumber').textContent = target.dataset.assetNumber;
+                document.getElementById('returnBorrower').textContent = target.dataset.borrower;
+                
+                currentTransactionId = target.dataset.loanId;
+                currentAssetId = target.dataset.assetId;
+                
+                const conditionCheckbox = document.getElementById('returnCondition');
+                const confirmBtn = document.getElementById('confirmReturn');
+                conditionCheckbox.checked = false;
+                confirmBtn.disabled = true;
+                
+                conditionCheckbox.onchange = () => { confirmBtn.disabled = !conditionCheckbox.checked; };
+                confirmBtn.onclick = () => returnLoan(currentTransactionId, currentAssetId);
+                
+                returnModal.show();
+            }
+
+            // Soft Delete button
+            if (target.classList.contains('btn-delete')) {
+                if (confirm('Anda yakin ingin memindahkan transaksi ini ke Trash Bin?')) {
+                    softDeleteLoan(target.dataset.loanId, target.dataset.assetId);
+                }
+            }
+            
+            // Restore from Trash
+            if (target.classList.contains('btn-restore')) {
+                restoreFromTrash(target.dataset.loanId);
+            }
+
+            // Permanently Delete
+            if (target.classList.contains('btn-delete-perm')) {
+                if (confirm('PERINGATAN: Aksi ini akan menghapus data secara permanen dan tidak dapat dibatalkan. Lanjutkan?')) {
+                    deletePermanently(target.dataset.loanId);
+                }
+            }
+        });
+        
+        // History Filters
+        document.getElementById('applyFilter').addEventListener('click', loadHistory);
+        document.getElementById('resetFilter').addEventListener('click', () => {
+            document.getElementById('filterNama').value = '';
+            document.getElementById('filterKelas').value = '';
+            document.getElementById('filterTanggalMulai').value = '';
+            document.getElementById('filterTanggalAkhir').value = '';
+            loadHistory();
+        });
+        
+        // Trash Bin Actions
+        const selectAllTrash = document.getElementById('selectAllTrash');
+        const bulkActions = document.getElementById('bulkActions');
+
+        selectAllTrash.addEventListener('change', function() {
+            document.querySelectorAll('.trash-item').forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            bulkActions.style.display = this.checked && document.querySelectorAll('.trash-item').length > 0 ? 'block' : 'none';
+        });
+
+        trashTableBody.addEventListener('change', function(e) {
+            if (e.target.classList.contains('trash-item')) {
+                const checkedCount = document.querySelectorAll('.trash-item:checked').length;
+                bulkActions.style.display = checkedCount > 0 ? 'block' : 'none';
+                selectAllTrash.checked = checkedCount === document.querySelectorAll('.trash-item').length;
+            }
+        });
+
+        document.getElementById('restoreSelected').addEventListener('click', () => {
+             if (confirm('Anda yakin ingin me-restore semua item yang dipilih?')) {
+                const selectedItems = document.querySelectorAll('.trash-item:checked');
+                selectedItems.forEach(item => restoreFromTrash(item.value));
+             }
+        });
+
+        document.getElementById('deleteSelected').addEventListener('click', () => {
+            if (confirm('PERINGATAN: Anda yakin ingin menghapus permanen semua item yang dipilih?')) {
+                const selectedItems = document.querySelectorAll('.trash-item:checked');
+                selectedItems.forEach(item => deletePermanently(item.value));
+            }
+        });
+        
+        document.getElementById('emptyTrash').addEventListener('click', () => {
+            if (confirm('PERINGATAN: Anda yakin ingin mengosongkan seluruh Trash Bin? Aksi ini tidak dapat dibatalkan.')) {
+                firebase.remove(firebase.ref('deleted/peminjaman'));
+                showToast('Sukses', 'Trash Bin telah dikosongkan.', 'success');
+            }
+        });
+
+        // --- Core Functions ---
+        function returnLoan(loanId, assetId) {
+            firebase.set(firebase.ref(`peminjaman/${loanId}/status`), 'Dikembalikan')
+                .then(() => {
+                    firebase.set(firebase.ref(`aset/${assetId}/status`), 'Tersedia');
+                    returnModal.hide();
+                    showToast('Sukses', 'Barang berhasil dikembalikan.', 'success');
+                })
+                .catch(error => showToast('Error', `Gagal: ${error.message}`, 'error'));
+        }
+
+        async function softDeleteLoan(loanId, assetId) {
+            const loanRef = firebase.ref(`peminjaman/${loanId}`);
+            try {
+                const snapshot = await firebase.get(loanRef);
+                if (snapshot.exists()) {
+                    const loanData = snapshot.val();
+                    const deletedData = {
+                        ...loanData,
+                        deletedAt: new Date().toISOString(),
+                    };
+                    
+                    await firebase.set(firebase.ref(`deleted/peminjaman/${loanId}`), deletedData);
+                    await firebase.remove(loanRef);
+                    if(loanData.status === 'Dipinjam') {
+                       await firebase.set(firebase.ref(`aset/${assetId}/status`), 'Tersedia');
+                    }
+                    showToast('Sukses', 'Transaksi dipindahkan ke Trash Bin.', 'success');
+                }
+            } catch (error) {
+                showToast('Error', `Gagal menghapus: ${error.message}`, 'error');
+            }
+        }
+        
+        async function restoreFromTrash(loanId) {
+            const trashItemRef = firebase.ref(`deleted/peminjaman/${loanId}`);
+            try {
+                 const snapshot = await firebase.get(trashItemRef);
+                 if (snapshot.exists()) {
+                    const loanData = snapshot.val();
+                    delete loanData.deletedAt;
+                    
+                    await firebase.set(firebase.ref(`peminjaman/${loanId}`), loanData);
+                    await firebase.remove(trashItemRef);
+                    
+                    if(loanData.status === 'Dipinjam') {
+                        await firebase.set(firebase.ref(`aset/${loanData.asetRef}/status`), 'Dipinjam');
+                    }
+                    showToast('Sukses', 'Data berhasil di-restore.', 'success');
+                }
+            } catch (error) {
+                 showToast('Error', `Gagal restore: ${error.message}`, 'error');
+            }
+        }
+        
+        function deletePermanently(loanId) {
+            firebase.remove(firebase.ref(`deleted/peminjaman/${loanId}`))
+                .then(() => showToast('Sukses', 'Data berhasil dihapus permanen.', 'success'))
+                .catch(error => showToast('Error', `Gagal menghapus: ${error.message}`, 'error'));
+        }
+
+        // --- Initial Load ---
+        loadDashboardStats();
+        setInterval(loadDashboardStats, 30000); // Auto-refresh stats every 30 seconds
+    });
+    </script>
+</body>
+</html>
